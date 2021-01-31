@@ -33,7 +33,6 @@ import time
 start_time = time.time()
 
 data_in = np.genfromtxt('Miata_run.csv', delimiter=',')
-# hi
 
 # Vehicle Properties
 
@@ -48,7 +47,6 @@ class Weight_Struct(object):
         self.unsprung_LR = unsprung_LR
         self.unsprung_RR = unsprung_RR
         self.vehicle_total = self.vehicle + self.driver
-
 
 W = Weight_Struct
 
@@ -72,7 +70,6 @@ W.R_axle = W.vehicle_total * (1 - W.distribution)  # Rear axle weight (lbs) - wi
 # NEW TO V7 #
 W.spr_dis = (W.vehicle_total * W.distribution - W.unsprung_F) / W.sprung  # Long. weight distribution of sprung mass
 
-
 class Dimensions:
     def __init__(self, track_F=0, track_R=0, wheelbase=0, IR_front=0, IR_rear=0, IR_change_rate_front=0,
                  IR_change_rate_rear=0):
@@ -83,7 +80,6 @@ class Dimensions:
         self.Installation_Ratio_Rear = IR_rear
         self.Installation_Ratio_Change_Rate_Front = IR_change_rate_front
         self.Installation_Ratio_Change_Rate_Rear = IR_change_rate_rear
-
 
 D = Dimensions
 
@@ -188,18 +184,22 @@ DampRateRR = 39.971  # lbf-s/in 88.8 maximum from Ohlins
 
 
 def dampFuncF(vel):
+    '''
     if math.fabs(vel) <= 1 / 12:
         return 37.115
     else:
-        return 15
-
+        return 36
+    '''
+    return 38 * math.e ** (-math.fabs(vel))
 
 def dampFuncR(vel):
+    '''
     if math.fabs(vel) <= 1 / 12:
         return 39.971
     else:
-        return 16
-
+        return 38
+    '''
+    return 40 * math.e ** (-math.fabs(vel))
 
 IR_F = 1
 IR_R = 1
@@ -372,7 +372,6 @@ def AUpdate(velLF, velRF, velLR, velRR):
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
                      [a_u4, new_b_u4, c_u4, new_d_u4, e_u4, new_f_u4, 0, 0, 0, 0, g_u4, 0, h_u4, new_k_u4]])
 
-
 # Definition of the "B" matrix
 
 B = np.array([[0, 0, 0, 0, 0, 0, 0],
@@ -437,10 +436,7 @@ print('Setup time:', setup_time - start_time)
 
 # Simulate the system
 def dX_dt(X, t):
-    global A
-    vect = A.dot(X)[:, np.newaxis] + B.dot(sim_input[np.where(data_in[1:, 6] == t_round(t, 0.05))].T)
-    A = AUpdate(X[7], X[9], X[11], X[13])
-
+    vect = AUpdate(X[7], X[9], X[11], X[13]).dot(X)[:, np.newaxis] + B.dot(sim_input[np.where(data_in[1:, 6] == t_round(t, 0.05))].T)
     return vect.T.flatten()
 
 
