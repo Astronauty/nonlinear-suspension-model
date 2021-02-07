@@ -190,7 +190,7 @@ def dampFuncF(vel):
     else:
         return 36
     '''
-    return 38 * math.e ** (-math.fabs(vel))
+    return 38 * math.e ** (-24 * math.fabs(vel))
 
 def dampFuncR(vel):
     '''
@@ -199,7 +199,7 @@ def dampFuncR(vel):
     else:
         return 38
     '''
-    return 40 * math.e ** (-math.fabs(vel))
+    return 40 * math.e ** (-24 * math.fabs(vel))
 
 IR_F = 1
 IR_R = 1
@@ -545,11 +545,11 @@ zd4 = x[:, 2] - (D.wheelbase * W.spr_dis) * x[:, 4] - (D.track_R / 2) * x[:, 6]
 print('Calc time:', time.time() - int_time)
 
 # Figure 1
-plt.plot(tspan, y1, label='CG Height [in]', linewidth=0.5)
 plt.plot(tspan, y2, label='Pitch Angle [deg]')
 plt.plot(tspan, y3, label='Roll Angle [deg]')
+plt.plot(tspan, y1, label='CG Height [in]')
 plt.xlabel("Time [s]")
-plt.title("CG Height, Pitch, and Roll vs. Time")
+plt.title("CG Height, Pitch, and Roll vs. Time [NL]")
 plt.legend(loc='upper right')
 plt.show()
 

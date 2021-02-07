@@ -365,7 +365,6 @@ def t_round(t, input_step):
 setup_time = time.time()
 print('Setup time:', setup_time - start_time)
 
-print(A)
 # Simulate the system
 def dX_dt(X, t):
     vect = A.dot(X)[:, np.newaxis] + B.dot(sim_input[np.where(data_in[1:, 6] == t_round(t, 0.05))].T)
@@ -477,9 +476,9 @@ zd4 = x[:, 2] - (D.wheelbase * W.spr_dis) * x[:, 4] - (D.track_R / 2) * x[:, 6]
 print('Calc time:', time.time() - int_time)
 
 # Figure 1
-plt.plot(tspan, y1, label='CG Height [in]', linewidth=0.5)
 plt.plot(tspan, y2, label='Pitch Angle [deg]')
 plt.plot(tspan, y3, label='Roll Angle [deg]')
+plt.plot(tspan, y1, label='CG Height [in]')
 plt.xlabel("Time [s]")
 plt.title("CG Height, Pitch, and Roll vs. Time")
 plt.legend(loc='upper right')
@@ -521,5 +520,5 @@ title('Wheel Loads vs. Time')
 # title('Force at Uprights from Springs/Dampers (no ARBs) vs. Time')
 
 output = np.array([tspan, y1, y2, y3, damper_u1, damper_u2, damper_u3, damper_u4])
-out_file = open("out2.txt", 'w')
-np.savetxt('out2.txt', output.T)
+out_file = open("out.txt", 'w')
+np.savetxt('out.txt', output.T)
