@@ -32,7 +32,8 @@ import time
 
 start_time = time.time()
 
-data_in = np.genfromtxt('Miata_run.csv', delimiter=',')
+data_in_raw = np.genfromtxt('Miata_run.csv', delimiter=',')
+data_in = data_in_raw[1:, :]
 
 # Vehicle Properties
 
@@ -408,8 +409,8 @@ B_bar = np.dot(A, E) + B  # Effective "B" Matrix. See Linearized Dynamic Suspens
 
 # Simulation setup
 # tspan = np.linspace(0, data_in[0, 0], num_steps)  # Time definition; ensures constant time step
-tspan = data_in[1:, 6]  # Alternate time vector definition.
-tstep = data_in[1:, 6][1] - data_in[1:, 6][0]
+tspan = data_in[:, 6]  # Alternate time vector definition.
+tstep = data_in[:, 6][1] - data_in[:, 6][0]
 x0 = np.zeros(14)  # Initial state vector values (set to zero)
 
 # System inputs [Ax Ay Az r1 r2 r3 r4]
@@ -418,8 +419,8 @@ x0 = np.zeros(14)  # Initial state vector values (set to zero)
 #   1 = FL, 2 = FR, 3 = RL, 4 = RR
 
 # BAND AID FIX OF INPUT ###
-Accel = data_in[1:, 0:3]
-Road = np.zeros((len(data_in[1:, 6]), 4))
+Accel = data_in[:, 0:3]
+Road = np.zeros((len(data_in[:, 6]), 4))
 sim_input = np.concatenate((Accel, Road), axis=1)
 
 
@@ -436,7 +437,7 @@ print('Setup time:', setup_time - start_time)
 
 # Simulate the system
 def dX_dt(X, t):
-    vect = AUpdate(X[7], X[9], X[11], X[13]).dot(X)[:, np.newaxis] + B.dot(sim_input[np.where(data_in[1:, 6] == t_round(t, 0.05))].T)
+    vect = AUpdate(X[7], X[9], X[11], X[13]).dot(X)[:, np.newaxis] + B.dot(sim_input[np.where(data_in[:, 6] == t_round(t, 0.05))].T)
     return vect.T.flatten()
 
 
@@ -504,26 +505,23 @@ damper_u2 = u2 * IR_F
 damper_u3 = u3 * IR_R
 damper_u4 = u4 * IR_R
 
-'''
+
 # Input derivative
 
-input_dot = zeros(size(input))
+input_dot = np.zeros(data_in.shape)
 
-for i = 1:N-1
-    
-    if i < 3
-        input_dot(:,i) = (input(:,i+1)-input(:,i))/del_t
+N = data_in[:, :].shape[0]
+for i in range(N - 1):
+    if i < 2:
+        input_dot[i, :] = (data_in[i + 1, :] - data_in[i, :]) / tstep
 
-elseif i > N-2
-        input_dot(:,i) = (input(:,i+1)-input(:,i))/del_t
+    elif i > N - 3:
+        input_dot[i, :] = (data_in[i + 1, :] - data_in[i, :]) / tstep
 
-else
-        input_dot(:,i) = (input(:,i-2)-8.*input(:,i-1)+8.*input(:,i+1)-input(:,i+2))/del_t/12
+    else:
+        input_dot[i, :] = (data_in[i - 2, :] - 8. * data_in[i - 1, :] + 8. * data_in[i + 1, :] - data_in[
+                                                                                                 i + 2, :]) / tstep / 12
 
-end
-
-end
-'''
 # Wheel height velocities, Units: ft/s
 ud1 = x[:, 7]
 ud2 = x[:, 9]
@@ -531,16 +529,16 @@ ud3 = x[:, 11]
 ud4 = x[:, 13]
 
 # Define Chassis Points (z); Units: ft
-z1 = x[:, 0] + (D.wheelbase * (1 - W.spr_dis)) * x[:, 3] + (D.track_F / 2) * x[:, 5]
-z2 = x[:, 0] + (D.wheelbase * (1 - W.spr_dis)) * x[:, 3] - (D.track_F / 2) * x[:, 5]
-z3 = x[:, 0] - (D.wheelbase * W.spr_dis) * x[:, 3] + (D.track_R / 2) * x[:, 5]
-z4 = x[:, 0] - (D.wheelbase * W.spr_dis) * x[:, 3] - (D.track_R / 2) * x[:, 5]
+z1 = x[:, 0] + (D.wheelbase * (1 - W.spr_dis)) * x[:, 2] + (D.track_F / 2) * x[:, 4]
+z2 = x[:, 0] + (D.wheelbase * (1 - W.spr_dis)) * x[:, 2] - (D.track_F / 2) * x[:, 4]
+z3 = x[:, 0] - (D.wheelbase * W.spr_dis) * x[:, 2] + (D.track_R / 2) * x[:, 4]
+z4 = x[:, 0] - (D.wheelbase * W.spr_dis) * x[:, 2] - (D.track_R / 2) * x[:, 4]
 
 # Define Chassis Point velocities (zd); Units: ft/s
-zd1 = x[:, 2] + (D.wheelbase * (1 - W.spr_dis)) * x[:, 4] + (D.track_F / 2) * x[:, 6]
-zd2 = x[:, 2] + (D.wheelbase * (1 - W.spr_dis)) * x[:, 4] - (D.track_F / 2) * x[:, 6]
-zd3 = x[:, 2] - (D.wheelbase * W.spr_dis) * x[:, 4] + (D.track_R / 2) * x[:, 6]
-zd4 = x[:, 2] - (D.wheelbase * W.spr_dis) * x[:, 4] - (D.track_R / 2) * x[:, 6]
+zd1 = x[:, 1] + (D.wheelbase * (1 - W.spr_dis)) * x[:, 3] + (D.track_F / 2) * x[:, 5]
+zd2 = x[:, 1] + (D.wheelbase * (1 - W.spr_dis)) * x[:, 3] - (D.track_F / 2) * x[:, 5]
+zd3 = x[:, 1] - (D.wheelbase * W.spr_dis) * x[:, 3] + (D.track_R / 2) * x[:, 5]
+zd4 = x[:, 1] - (D.wheelbase * W.spr_dis) * x[:, 3] - (D.track_R / 2) * x[:, 5]
 
 print('Calc time:', time.time() - int_time)
 
@@ -553,12 +551,12 @@ plt.title("CG Height, Pitch, and Roll vs. Time [NL]")
 plt.legend(loc='upper right')
 plt.show()
 
-'''
+
 # Calculate wheel loads (add tire damping here if added later)
-n_fl = W.vehicle_total * W.distribution/2 - K_Tire*(u1 - sim_input[4,:]) - Tire_Damping*(ud1-input_dot(4,:))
-n_fr = W.vehicle_total*W.distribution/2 - K_Tire*(u2-input(5,:)) - Tire_Damping*(ud2-input_dot(5,:))
-n_rl = W.vehicle_total*(1-W.distribution)/2 - K_Tire*(u3-input(6,:)) - Tire_Damping*(ud3-input_dot(6,:))
-n_rr = W.vehicle_total*(1-W.distribution)/2 - K_Tire*(u4-input(7,:)) - Tire_Damping*(ud4-input_dot(7,:))
+n_fl = W.vehicle_total * W.distribution/2 - K_Tire * (u1 - sim_input[:, 3]) - Tire_Damping * (ud1 - input_dot[:, 3])
+n_fr = W.vehicle_total * W.distribution/2 - K_Tire * (u2 - sim_input[:, 4]) - Tire_Damping * (ud2 - input_dot[:, 4])
+n_rl = W.vehicle_total * (1 - W.distribution)/2 - K_Tire * (u3 - sim_input[:, 5]) - Tire_Damping * (ud3 - input_dot[:, 5])
+n_rr = W.vehicle_total * (1 - W.distribution)/2 - K_Tire * (u4 - sim_input[:, 6]) - Tire_Damping * (ud4 - input_dot[:, 6])
 
 # Wheel forces from springs/dampers (not ARBs)
 force_fl = wheelRateF * (u1 - z1) + wheelDampF * (ud1 - zd1) + W.sprung * W.spr_dis / 2
@@ -568,14 +566,16 @@ force_rr = wheelRateR * (u4 - z4) + wheelDampR * (ud4 - zd4) + W.sprung * (1 - W
 
 # total_n = n.fr+n.fl+n.rr+n.rl  # Check total vehicle weight
 
-# Plot wheel loads over time
-figure(2); hold on
-plot(t,n.fr,'k',t,n.fl,'b',t,n.rr,'g',t,n.rl,'r')
-legend('FR','FL','RR','RL')
-xlabel('Time [s]')
-ylabel('Wheel Loads [lbf]')
-title('Wheel Loads vs. Time')
-'''
+# Figure 2: Plot wheel loads over time
+plt.plot(tspan, n_fl, label='FL Wheel Load') #lbs?
+plt.plot(tspan, n_fr, label='FR Wheel Load')
+plt.plot(tspan, n_rl, label='RL Wheel Load')
+plt.plot(tspan, n_rr, label='RR Wheel Load')
+plt.xlabel("Time [s]")
+plt.title("Wheel Loads")
+plt.legend(loc='upper right')
+plt.show()
+
 
 # figure(3); plot(t,total_n) # Check total vehicle weight
 # xlabel('Time [s]')
@@ -587,6 +587,15 @@ title('Wheel Loads vs. Time')
 # xlabel('Time [s]')
 # ylabel('Suspension Force at Wheels [lbf]')
 # title('Force at Uprights from Springs/Dampers (no ARBs) vs. Time')
+plt.plot(tspan, force_fl, label='FL Suspension Force') #lbs?
+plt.plot(tspan, force_fr, label='FR Suspension Force')
+plt.plot(tspan, force_rl, label='RL Suspension Force')
+plt.plot(tspan, force_rr, label='RR Suspension Force')
+plt.xlabel("Time [s]")
+plt.ylabel("Suspension Force at Wheels [lbf]")
+plt.title("Force at Uprights from Springs/Dampers (no ARBs) vs. Time")
+plt.legend(loc='upper right')
+plt.show()
 
 output = np.array([tspan, y1, y2, y3, damper_u1, damper_u2, damper_u3, damper_u4])
 out_file = open("outNL.txt", 'w')

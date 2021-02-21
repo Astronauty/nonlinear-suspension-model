@@ -32,7 +32,8 @@ import time
 
 start_time = time.time()
 
-data_in = np.genfromtxt('Miata_run.csv', delimiter=',')
+data_in_raw = np.genfromtxt('Miata_run.csv', delimiter=',')
+data_in = data_in_raw[1:, :]
 
 
 # Vehicle Properties
@@ -340,8 +341,8 @@ B_bar = np.dot(A, E) + B  # Effective "B" Matrix. See Linearized Dynamic Suspens
 
 # Simulation setup
 # tspan = np.linspace(0, data_in[0, 0], num_steps)  # Time definition; ensures constant time step
-tspan = data_in[1:, 6]  # Alternate time vector definition.
-tstep = data_in[1:, 6][1] - data_in[1:, 6][0]
+tspan = data_in[:, 6]  # Alternate time vector definition.
+tstep = data_in[:, 6][1] - data_in[:, 6][0]
 x0 = np.zeros(14)  # Initial state vector values (set to zero)
 
 # System inputs [Ax Ay Az r1 r2 r3 r4]
@@ -350,8 +351,8 @@ x0 = np.zeros(14)  # Initial state vector values (set to zero)
 #   1 = FL, 2 = FR, 3 = RL, 4 = RR
 
 # BAND AID FIX OF INPUT ###
-Accel = data_in[1:, 0:3]
-Road = np.zeros((len(data_in[1:, 6]), 4))
+Accel = data_in[:, 0:3]
+Road = np.zeros((len(data_in[:, 6]), 4))
 sim_input = np.concatenate((Accel, Road), axis=1)
 
 
@@ -367,7 +368,7 @@ print('Setup time:', setup_time - start_time)
 
 # Simulate the system
 def dX_dt(X, t):
-    vect = A.dot(X)[:, np.newaxis] + B.dot(sim_input[np.where(data_in[1:, 6] == t_round(t, 0.05))].T)
+    vect = A.dot(X)[:, np.newaxis] + B.dot(sim_input[np.where(data_in[:, 6] == t_round(t, 0.05))].T)
     return vect.T.flatten()
 
 
