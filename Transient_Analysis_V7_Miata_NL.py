@@ -178,7 +178,7 @@ K_ARB_F = 28764.92  # lbf*ft/rad
 K_ARB_R = 3540.2983  # lbf*ft/rad
 SpringRateF = 291.22  # lbf/in
 SpringRateR = 439.68  # lbf/in
-DampRateLF = 37.115  # lbf-s/in 88.8 maximum from Ohlins
+DampRateLF = 37.115 # lbf-s/in 88.8 maximum from Ohlins
 DampRateRF = 37.115  # lbf-s/in 88.8 maximum from Ohlins
 DampRateLR = 39.971  # lbf-s/in 88.8 maximum from Ohlins
 DampRateRR = 39.971  # lbf-s/in 88.8 maximum from Ohlins
@@ -189,18 +189,22 @@ def dampFuncF(vel):
     if math.fabs(vel) <= 1 / 12:
         return 37.115
     else:
-        return 36
-    '''
+        return 35
+        '''
+
     return 38 * math.e ** (-24 * math.fabs(vel))
+
 
 def dampFuncR(vel):
     '''
     if math.fabs(vel) <= 1 / 12:
         return 39.971
     else:
-        return 38
-    '''
+        return 35
+        '''
+
     return 40 * math.e ** (-24 * math.fabs(vel))
+
 
 IR_F = 1
 IR_R = 1
@@ -334,36 +338,63 @@ def AUpdate(velLF, velRF, velLR, velRR):
     newLR = dampFuncR(velLR)
     newRR = dampFuncR(velRR)
 
+    #New Wheel 1
     new_wheelDampLF = newLF * IR_F ** 2 * 12
     new_b_u1 = new_wheelDampLF / (W.unsprung_LF / G)
     new_d_u1 = new_wheelDampLF / (W.unsprung_LF / G) * D.wheelbase * (1 - W.spr_dis)
     new_f_u1 = new_wheelDampLF / (W.unsprung_LF / G) * D.track_F / 2
     new_h_u1 = -(new_wheelDampLF + Tire_Damping) / (W.unsprung_LF / G)
 
+    #New Wheel 2
     new_wheelDampRF = newRF * IR_F ** 2 * 12
     new_b_u2 = new_wheelDampRF / (W.unsprung_RF / G)
     new_d_u2 = new_wheelDampRF / (W.unsprung_RF / G) * D.wheelbase * (1 - W.spr_dis)
     new_f_u2 = - new_wheelDampRF / (W.unsprung_RF / G) * D.track_F / 2
     new_k_u2 = -(new_wheelDampRF + Tire_Damping) / (W.unsprung_RF / G)
 
+    #New Wheel 3
     new_wheelDampLR = newLR * IR_R ** 2 * 12
     new_b_u3 = new_wheelDampLR / (W.unsprung_LR / G)
     new_d_u3 = - new_wheelDampLR / (W.unsprung_LR / G) * D.wheelbase * W.spr_dis
     new_f_u3 = new_wheelDampLR / (W.unsprung_LR / G) * D.track_R / 2
     new_h_u3 = -(new_wheelDampLR + Tire_Damping) / (W.unsprung_LR / G)
 
+    #New Wheel 4
     new_wheelDampRR = newRR * IR_R ** 2 * 12
     new_b_u4 = new_wheelDampRR / (W.unsprung_RR / G)
     new_d_u4 = - new_wheelDampRR / (W.unsprung_RR / G) * D.wheelbase * W.spr_dis
     new_f_u4 = - new_wheelDampRR / (W.unsprung_RR / G) * D.track_R / 2
     new_k_u4 = -(new_wheelDampRR + Tire_Damping) / (W.unsprung_RR / G)
 
+    new_wheelDampR = (new_wheelDampRR + new_wheelDampLR) / 2
+    new_wheelDampF = (new_wheelDampRF + new_wheelDampLF) / 2
+
+    #New Pitch
+    new_b_p = 2 * D.wheelbase * (W.spr_dis * new_wheelDampR - (1 - W.spr_dis) * new_wheelDampF) / I.yy
+    new_d_p = -2 * (D.wheelbase ** 2) * (((1 - W.spr_dis) ** 2) * new_wheelDampF + (W.spr_dis ** 2) * new_wheelDampR) / I.yy
+    new_f_p = D.wheelbase * (1 - W.spr_dis) * new_wheelDampF / I.yy
+    new_h_p = -D.wheelbase * W.spr_dis * new_wheelDampR / I.yy
+
+    #New Roll
+    new_b_r = -(D.track_F ** 2 * new_wheelDampF + D.track_R ** 2 * new_wheelDampR) / 2 / I.xx_RC
+    new_d_r = D.track_F * new_wheelDampF / 2 / I.xx_RC
+    new_f_r = D.track_R * new_wheelDampR / 2 / I.xx_RC
+
+    #New Height
+    new_b_z = -2 * (new_wheelDampF + new_wheelDampR) / (W.sprung / G)
+    new_d_z = 2 * D.wheelbase * (W.spr_dis * new_wheelDampR - (1 - W.spr_dis) * new_wheelDampF) / (W.sprung / G)
+    new_f_z = new_wheelDampF / (W.sprung / G)
+    new_h_z = new_wheelDampR / (W.sprung / G)
+
+
+
+
     return np.array([[0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [a_z, b_z, c_z, d_z, 0, 0, e_z, f_z, e_z, f_z, g_z, h_z, g_z, h_z],
+                     [a_z, new_b_z, c_z, new_d_z, 0, 0, e_z, new_f_z, e_z, new_f_z, g_z, new_h_z, g_z, new_h_z],
                      [0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [a_p, b_p, c_p, d_p, 0, 0, e_p, f_p, e_p, f_p, g_p, h_p, g_p, h_p],
+                     [a_p, new_b_p, c_p, new_d_p, 0, 0, e_p, new_f_p, e_p, new_f_p, g_p, new_h_p, g_p, new_h_p],
                      [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0],
-                     [0, 0, 0, 0, a_r, b_r, c_r, d_r, -c_r, -d_r, e_r, f_r, -e_r, -f_r],
+                     [0, 0, 0, 0, a_r, new_b_r, c_r, new_d_r, -c_r, -new_d_r, e_r, new_f_r, -e_r, -new_f_r],
                      [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0],
                      [a_u1, new_b_u1, c_u1, new_d_u1, e_u1, new_f_u1, g_u1, new_h_u1, k_u1, 0, 0, 0, 0, 0],
                      [0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0],
@@ -436,34 +467,41 @@ print('Setup time:', setup_time - start_time)
 
 
 # Simulate the system
+
+'''
+#ODEInt Solver ############################################################
 def dX_dt(X, t):
     vect = AUpdate(X[7], X[9], X[11], X[13]).dot(X)[:, np.newaxis] + B.dot(sim_input[np.where(data_in[:, 6] == t_round(t, 0.05))].T)
     return vect.T.flatten()
 
 
 x = integrate.odeint(dX_dt, x0.T, tspan, rtol=0.001, atol=0.001)
-int_time = time.time()
-print('Integration time:', int_time - setup_time)
 
+
+###########################################################################
 '''
+
 #Backwards Euler Solver ###################################################
-A_bar = eye(length(x0))-A.*del_t
-A_bar_inv = A_bar^-1
+#A_bar = np.identity(len(x0)) - A * tstep
+#A_bar_inv = np.linalg.inv(A_bar)
 
-x = zeros(length(x0),length(tspan))
-x(:,1) = x0 - E*input(:,1);
+x = np.zeros((len(tspan), len(x0)))
+x[1, :] = x0 - E.dot(sim_input[1, :])
 
-for i = 2:length(tspan)
+for i in  range(2, len(tspan)):
     
-    mean_input = input(:,i);
+    mean_input = sim_input[i, :]
+    A_new = AUpdate(x[i - 1, 7], x[i - 1, 9], x[i - 1, 11], x[i - 1, 13])
+    A_bar = np.identity(len(x0)) - A_new * tstep
+    A_bar_inv = np.linalg.inv(A_bar)
+    B_bar_new = np.dot(A_new, E) + B
+    x[i, :] = A_bar_inv.dot(x[i-1, :] + (tstep * B_bar_new).dot(mean_input))
     
-    x(:,i) = A_bar_inv*(x(:,i-1) + (del_t.*B_bar)*mean_input);
-    
-end
+
 ###########################################################################
 
-
-# 4th Order Runge-Kutta ####################################################
+'''
+# 4th Order Runge-Kutta (NOT FIXED)####################################################
 # 
 # x = zeros(length(x0),length(tspan))
 # x(:,1) = x0 - E*input(:,1);
@@ -488,6 +526,8 @@ end
 # end
 ###########################################################################
 '''
+int_time = time.time()
+print('Integration time:', int_time - setup_time)
 
 t = tspan
 
@@ -597,6 +637,6 @@ plt.title("Force at Uprights from Springs/Dampers (no ARBs) vs. Time")
 plt.legend(loc='upper right')
 plt.show()
 
-output = np.array([tspan, y1, y2, y3, damper_u1, damper_u2, damper_u3, damper_u4])
+output = np.array([tspan, ud1, y1, y2, y3, damper_u1, damper_u2, damper_u3, damper_u4])
 out_file = open("outNL.txt", 'w')
 np.savetxt('outNL.txt', output.T)
